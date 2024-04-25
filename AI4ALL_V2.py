@@ -11,13 +11,20 @@ from tensorflow.keras.preprocessing.image import ImageDataGenerator
 train_datagen = ImageDataGenerator()
 train_generator = train_datagen.flow_from_directory(
     r'C:/Users/amkan/Downloads/archive',
-    target_size=(200,200),
+    target_size=(224,224),
     batch_size=50,
     class_mode='categorical' 
 )
 import os
 safe = 0
 cancer = 0
+
+
+
+
+
+   
+
 
 # Get the current user's home directory
 home_dir = os.path.expanduser("~")
@@ -118,7 +125,7 @@ train_generator = train_datagen.flow_from_dataframe(
     dataframe=train_df,
     x_col='filename',
     y_col='class',
-    target_size=(200, 200),
+    target_size=(224, 224),
     batch_size=50,
     class_mode='categorical'
 )
@@ -128,7 +135,7 @@ val_generator = val_datagen.flow_from_dataframe(
     dataframe=val_df,
     x_col='filename',
     y_col='class',
-    target_size=(200, 200),
+    target_size=(224, 224),
     batch_size=50,
     class_mode='categorical'
 )
@@ -138,7 +145,7 @@ test_generator = test_datagen.flow_from_dataframe(
     dataframe=test_df,
     x_col='filename',
     y_col='class',
-    target_size=(200, 200),
+    target_size=(224, 224),
     batch_size=50,
     class_mode='categorical'
 )
@@ -365,8 +372,11 @@ import numpy as np
 x_train = np.random.randn(1000, 224, 224, 3)
 y_train = np.random.randint(0, 2, size=(1000,))
 
+
 # Train the model
-epochs = 30
+#model.fit(train_generator, epochs=3,validation_data=test_generator)
+
+epochs = 10
 batch_size = 50
 steps_per_epoch = len(x_train) // batch_size
 history = model.fit(x_train, y_train, epochs=epochs, batch_size=batch_size, verbose=1, steps_per_epoch=steps_per_epoch)
@@ -391,7 +401,7 @@ class_labels = ['Healthy', 'Cancerous']
 # Function to predict the class of an image
 def predict_image_class(image_path):
     # Load and preprocess the image
-    img = image.load_img(image_path, target_size=(200, 200))
+    img = image.load_img(image_path, target_size=(224, 224))
     img_array = image.img_to_array(img)
     img_array = np.expand_dims(img_array, axis=0)
     img_array /= 255.  # Normalize the image data
@@ -405,23 +415,38 @@ def predict_image_class(image_path):
 
 numOfCases = 0
 correct = 0
-# Loop through each file in the directory
-for filename in os.listdir('C:/Users/amkan/Downloads/archive/testcase'):
-    # Get the full path to the file
-    f = os.path.join('C:/Users/amkan/Downloads/archive/testcase', filename)
-    
-    # checking if it is a file
-    if os.path.isfile(f):
+
+
+
+directory = r'C:/Users/amkan/Downloads/archive/models/Cancerous'
+
+# Iterate over each file in the directory
+for filename in os.listdir(directory):
+    filepath = os.path.join(directory, filename)
+    if os.path.isfile(filepath):
         # Predict the class of the image
-        predicted_class = predict_image_class(f)
+        predicted_class = predict_image_class(filepath)
         print("File:", filename, "Predicted class:", predicted_class)
 
         numOfCases+=1
         if(predicted_class in filename):
             correct += 1
 
-print(f"Prediction Accuracy: {(correct/numOfCases)*100} among 600 files")
+directory = r'C:/Users/amkan/Downloads/archive/models/Healthy'
+
+# Iterate over each file in the directory
+for filename in os.listdir(directory):
+    filepath = os.path.join(directory, filename)
+    if os.path.isfile(filepath):
+        # Predict the class of the image
+        predicted_class = predict_image_class(filepath)
+        print("File:", filename, "Predicted class:", predicted_class)
+
+        numOfCases+=1
+        if(predicted_class in filename):
+            correct += 1
 
 
+    
 
-
+print(f"Prediction Accuracy: {(correct/numOfCases)*100} among {numOfCases} files")
