@@ -366,20 +366,62 @@ x_train = np.random.randn(1000, 224, 224, 3)
 y_train = np.random.randint(0, 2, size=(1000,))
 
 # Train the model
-epochs = 15
+epochs = 30
 batch_size = 50
 steps_per_epoch = len(x_train) // batch_size
 history = model.fit(x_train, y_train, epochs=epochs, batch_size=batch_size, verbose=1, steps_per_epoch=steps_per_epoch)
 
 
 # Save the trained model to the specified location
-model.save('ai4all.h5')
+model.save('C:/Users/amkan/Downloads/archive/ai4all.h5')
 
 
-'''
+
+import os
+import numpy as np
+from tensorflow.keras.models import load_model
+from tensorflow.keras.preprocessing import image
+
+# Load the trained model
+model = load_model('C:/Users/amkan/Downloads/archive/ai4all.h5')
+
+# Define the class labels
+class_labels = ['Healthy', 'Cancerous']
+
+# Function to predict the class of an image
+def predict_image_class(image_path):
+    # Load and preprocess the image
+    img = image.load_img(image_path, target_size=(200, 200))
+    img_array = image.img_to_array(img)
+    img_array = np.expand_dims(img_array, axis=0)
+    img_array /= 255.  # Normalize the image data
+
+    # Make predictions
+    predictions = model.predict(img_array)
+    predicted_class_index = np.argmax(predictions[0])
+    predicted_class = class_labels[predicted_class_index]
+
+    return predicted_class
+
+numOfCases = 0
+correct = 0
+# Loop through each file in the directory
+for filename in os.listdir('C:/Users/amkan/Downloads/archive/testcase'):
+    # Get the full path to the file
+    f = os.path.join('C:/Users/amkan/Downloads/archive/testcase', filename)
+    
+    # checking if it is a file
+    if os.path.isfile(f):
+        # Predict the class of the image
+        predicted_class = predict_image_class(f)
+        print("File:", filename, "Predicted class:", predicted_class)
+
+        numOfCases+=1
+        if(predicted_class in filename):
+            correct += 1
+
+print(f"Prediction Accuracy: {(correct/numOfCases)*100} among 600 files")
 
 
-evaluate the model vs the tested
 
 
-'''
