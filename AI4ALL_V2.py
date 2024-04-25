@@ -303,150 +303,34 @@ for idx, class_name in enumerate(class_names):
 plt.tight_layout()
 plt.show()
 
-
-import tensorflow as tf
-from tensorflow.keras import layers, Model
-
-def residual_block(x, filters, kernel_size, strides=(1, 1)):
-    # Shortcut branch
-    shortcut = x
-
-    # Main branch
-    x = layers.Conv2D(filters, kernel_size, strides=strides, padding='same')(x)
-    x = layers.BatchNormalization()(x)
-    x = layers.Activation('relu')(x)
-    x = layers.Conv2D(filters, kernel_size, padding='same')(x)
-    x = layers.BatchNormalization()(x)
-
-    # Shortcut connection
-    if strides != (1, 1) or shortcut.shape[-1] != filters:
-        shortcut = layers.Conv2D(filters, (1, 1), strides=strides, padding='same')(shortcut)
-        shortcut = layers.BatchNormalization()(shortcut)
-
-    x = layers.Add()([x, shortcut])
-    x = layers.Activation('relu')(x)
-    return x
-
-def create_model(input_shape):
-    inputs = layers.Input(shape=input_shape)
-
-    # Initial convolutional layer
-    x = layers.Conv2D(64, (7, 7), strides=(2, 2), padding='same')(inputs)
-    x = layers.BatchNormalization()(x)
-    x = layers.Activation('relu')(x)
-
-    # Max pooling layer
-    x = layers.MaxPooling2D((3, 3), strides=(2, 2), padding='same')(x)
-
-    # Deep residual blocks
-    for _ in range(3):
-        x = residual_block(x, filters=64, kernel_size=(3, 3))
-
-    x = layers.MaxPooling2D((2, 2), padding='same')(x)
-
-    # Global average pooling
-    x = layers.GlobalAveragePooling2D()(x)
-
-    # Fully connected layer
-    x = layers.Dense(1000, activation='relu')(x)
-
-    # Output layer
-    outputs = layers.Dense(2, activation='softmax')(x)
-
-    # Create model
-    model = Model(inputs=inputs, outputs=outputs)
-    return model
-
-# Create the model
-input_shape = (224, 224, 3)  # Example input shape for breast cancer scan
-model = create_model(input_shape)
-
-# Compile the model
-model.compile(optimizer='adam', loss='sparse_categorical_crossentropy', metrics=['accuracy'])
-
-# Print model summary
-model.summary()
-
-# Generate dummy data for training
 import numpy as np
-x_train = np.random.randn(1000, 224, 224, 3)
-y_train = np.random.randint(0, 2, size=(1000,))
+from tensorflow.keras.models import Model
+from tensorflow.keras.layers import Dense, GlobalAveragePooling2D
+from tensorflow.keras.applications import ResNet50
+from tensorflow.keras import Input
 
+base_model = ResNet50(weights='imagenet', include_top=False, input_tensor=Input(shape=(224, 224, 3)))
 
-# Train the model
-#model.fit(train_generator, epochs=3,validation_data=test_generator)
-
-epochs = 10
 batch_size = 50
-steps_per_epoch = len(x_train) // batch_size
-history = model.fit(x_train, y_train, epochs=epochs, batch_size=batch_size, verbose=1, steps_per_epoch=steps_per_epoch)
+
+for layer in base_model.layers:
+    layer.trainable = False
+
+x = base_model.output
+x = GlobalAveragePooling2D()(x)  # Add a global spatial average pooling layer
+x = Dense(1000, activation='relu')(x)  # Add a fully-connected layer
+output = Dense(2, activation='softmax')(x)  # Add a logistic layer for binary classification
 
 
-# Save the trained model to the specified location
-model.save('C:/Users/amkan/Downloads/archive/ai4all.h5')
+model = Model(inputs=base_model.input, outputs=output) 
+model.compile(optimizer='adam', loss='categorical_crossentropy', metrics=['accuracy'])
 
 
+history = model.fit(
+    train_generator,
+    steps_per_epoch=train_generator.samples // 50,  # Calculate steps based on batch size of 50
+    epochs=3,
+    validation_data=val_generator,
+    validation_steps=val_generator.samples // 50  # Calculate validation steps based on batch size of 50
+)
 
-import os
-import numpy as np
-from tensorflow.keras.models import load_model
-from tensorflow.keras.preprocessing import image
-
-# Load the trained model
-model = load_model('C:/Users/amkan/Downloads/archive/ai4all.h5')
-
-# Define the class labels
-class_labels = ['Healthy', 'Cancerous']
-
-# Function to predict the class of an image
-def predict_image_class(image_path):
-    # Load and preprocess the image
-    img = image.load_img(image_path, target_size=(224, 224))
-    img_array = image.img_to_array(img)
-    img_array = np.expand_dims(img_array, axis=0)
-    img_array /= 255.  # Normalize the image data
-
-    # Make predictions
-    predictions = model.predict(img_array)
-    predicted_class_index = np.argmax(predictions[0])
-    predicted_class = class_labels[predicted_class_index]
-
-    return predicted_class
-
-numOfCases = 0
-correct = 0
-
-
-
-directory = r'C:/Users/amkan/Downloads/archive/models/Cancerous'
-
-# Iterate over each file in the directory
-for filename in os.listdir(directory):
-    filepath = os.path.join(directory, filename)
-    if os.path.isfile(filepath):
-        # Predict the class of the image
-        predicted_class = predict_image_class(filepath)
-        print("File:", filename, "Predicted class:", predicted_class)
-
-        numOfCases+=1
-        if(predicted_class in filename):
-            correct += 1
-
-directory = r'C:/Users/amkan/Downloads/archive/models/Healthy'
-
-# Iterate over each file in the directory
-for filename in os.listdir(directory):
-    filepath = os.path.join(directory, filename)
-    if os.path.isfile(filepath):
-        # Predict the class of the image
-        predicted_class = predict_image_class(filepath)
-        print("File:", filename, "Predicted class:", predicted_class)
-
-        numOfCases+=1
-        if(predicted_class in filename):
-            correct += 1
-
-
-    
-
-print(f"Prediction Accuracy: {(correct/numOfCases)*100} among {numOfCases} files")
